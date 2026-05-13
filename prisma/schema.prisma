@@ -1,0 +1,277 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  ADMIN
+  TENANT @map("RESIDENT")
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  ARCHIVED
+}
+
+enum TenantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  FAILED
+  ARCHIVED
+}
+
+enum MaintenanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum PropertyStatus {
+  VACANT
+  OCCUPIED
+  MAINTENANCE
+  RESERVED
+  ARCHIVED
+}
+
+enum PropertyType {
+  RESIDENTIAL
+  COMMERCIAL
+}
+
+enum AnnouncementAudience {
+  ADMINS
+  TENANTS @map("RESIDENTS")
+  BOTH
+}
+
+enum DepositTransactionType {
+  REQUIRED
+  PAYMENT
+  DEDUCTION
+  REFUND
+  ADJUSTMENT
+}
+
+enum DocumentCategory {
+  RENTAL_AGREEMENT
+  ID_PROOF
+  BILL
+  PAYMENT_RECEIPT
+  MOVE_IN_INSPECTION
+  MOVE_OUT_INSPECTION
+  MAINTENANCE_INVOICE
+  DAMAGE_REPORT
+  MISCELLANEOUS
+}
+
+model User {
+  id                   String               @id @default(cuid())
+  email                String               @unique
+  password             String
+  firstName            String?
+  lastName             String?
+  phone                String?
+  currentAddress       String?
+  occupation           String?
+  monthlyIncome        Decimal?
+  desiredMoveInDate    DateTime?
+  applicationMessage   String?
+  role                 UserRole             @default(TENANT)
+  status               UserStatus           @default(ACTIVE)
+  tenantStatus         TenantStatus?        @map("residentStatus")
+  requestedPropertyId  String?
+  depositRequired      Decimal              @default(0)
+  depositPaid          Decimal              @default(0)
+  depositBalance       Decimal              @default(0)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  tenant               Property?            @relation("TenantProperty")
+  requestedProperty    Property?            @relation("RequestedProperty", fields: [requestedPropertyId], references: [id], onDelete: SetNull)
+  payments             Payment[]
+  maintenanceRequests  MaintenanceRequest[]
+  notifications        Notification[]
+  createdAnnouncements Announcement[]      @relation("AnnouncementCreator")
+  tenantDocuments      TenantDocument[]
+  depositTransactions  DepositTransaction[]
+  passwordResetTokens  PasswordResetToken[]
+
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model Property {
+  id                   String               @id @default(cuid())
+  name                 String               @unique
+  postalCode           String?
+  areaName             String?
+  colonyName           String?
+  locality             String?
+  buildingName         String?
+  doorNumber           String?
+  latitude             Decimal?
+  longitude            Decimal?
+  propertyType         PropertyType         @default(RESIDENTIAL)
+  bedrooms             Int?
+  bathrooms            Int?
+  monthlyRent          Decimal              @default(0)
+  securityDeposit      Decimal              @default(0) @map("deposit")
+  notes                String?
+  leaseStartDate       DateTime?
+  leaseEndDate         DateTime?
+  status               PropertyStatus       @default(VACANT)
+  isArchived           Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  tenantId             String?              @unique @map("residentId")
+  tenant               User?                @relation("TenantProperty", fields: [tenantId], references: [id])
+  requestedTenants     User[]               @relation("RequestedProperty")
+  payments             Payment[]
+  maintenanceRequests  MaintenanceRequest[]
+  photos               PropertyPhoto[]
+  tenantDocuments      TenantDocument[]
+  depositTransactions  DepositTransaction[]
+
+  @@map("properties")
+}
+
+model PropertyPhoto {
+  id         String   @id @default(cuid())
+  path       String
+  altText    String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_photos")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  amount      Decimal
+  status      PaymentStatus @default(PENDING)
+  dueDate     DateTime
+  paidDate    DateTime?
+  note        String?
+  chargeMonth DateTime?
+  isArchived  Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tenantId    String        @map("userId")
+  tenant      User          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  propertyId  String
+  property    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model MaintenanceRequest {
+  id           String            @id @default(cuid())
+  title        String
+  description  String
+  status       MaintenanceStatus @default(PENDING)
+  priority     String?
+  assignee     String?
+  adminNotes   String?
+  completedAt  DateTime?
+  isArchived   Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  tenantId     String            @map("userId")
+  tenant       User              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  propertyId   String
+  property     Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_requests")
+}
+
+model Announcement {
+  id          String               @id @default(cuid())
+  title       String
+  body        String
+  audience    AnnouncementAudience @default(BOTH)
+  isPublished Boolean              @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  createdById String?
+  createdBy   User?                @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("announcements")
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  title      String
+  message    String
+  link       String?
+  type       String
+  isRead     Boolean  @default(false)
+  emailSent  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model DepositTransaction {
+  id          String                 @id @default(cuid())
+  type        DepositTransactionType
+  amount      Decimal
+  note        String?
+  createdAt   DateTime               @default(now())
+  tenantId    String
+  tenant      User                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  propertyId  String?
+  property    Property?              @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@map("deposit_transactions")
+}
+
+model TenantDocument {
+  id                String           @id @default(cuid())
+  title             String
+  category          DocumentCategory
+  filePath          String
+  fileName          String
+  mimeType          String?
+  sizeBytes         Int
+  uploadedByAdmin   Boolean          @default(false)
+  isVisibleToTenant Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  tenantId          String
+  tenant            User             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  propertyId        String
+  property          Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_documents")
+}

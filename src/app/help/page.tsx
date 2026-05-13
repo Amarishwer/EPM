@@ -1,17 +1,23 @@
-export default function Help() {
+import { PublishedAnnouncements } from '@/app/shared/published-announcements'
+
+export default async function HelpPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-lg p-8 bg-white rounded shadow-md mt-8">
-        <h2 className="text-2xl font-bold mb-4 text-center">Help & Support</h2>
-        <div className="mb-6 text-gray-700 text-lg">
-          <p className="mb-2">Questions about your balance, payments, and navigating the website?</p>
-          <p className="mb-4">Contact Edam Property Management for questions:</p>
-          <ul className="list-disc pl-6 mb-4">
-            <li><span className="font-semibold">Phone:</span> <a href="tel:+919440348141" className="text-blue-600 hover:underline">+91 9440348141</a></li>
-            <li><span className="font-semibold">Email:</span> <a href="mailto:info@edamproperty.com" className="text-blue-600 hover:underline">info@edamproperty.com</a></li>
-          </ul>
-        </div>
+    <div className="min-h-screen bg-[linear-gradient(180deg,_#f8f4ec_0%,_#eef3f8_100%)] px-4 py-10">
+      <div className="mx-auto max-w-5xl space-y-8">
+        <section className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-slate-200">
+          <h1 className="text-4xl font-semibold text-slate-950">Help and contact</h1>
+          <p className="mt-4 text-sm leading-7 text-slate-600">
+            Questions about your balance, payments, registration status, or navigating the website? Reach out and we will help you from the admin side while the tenant portal continues rolling out.
+          </p>
+          <div className="mt-6 space-y-3 text-sm text-slate-700">
+            <p><span className="font-semibold">Email:</span> info@edamproperty.com</p>
+            <p><span className="font-semibold">Phone:</span> +91 9440348141</p>
+            <p><span className="font-semibold">Address:</span> H.no: 11-11-143, Telephone colony, Saroornagar, Hyderabad, Telangana 500035, India.</p>
+          </div>
+        </section>
+
+        <PublishedAnnouncements audience="PUBLIC" />
       </div>
     </div>
-  );
+  )
 }

@@ -1,126 +1,292 @@
+import { PropertyStatus, PropertyType } from '@prisma/client'
+import Image from 'next/image'
+import Link from 'next/link'
 
+import { PublishedAnnouncements } from '@/app/shared/published-announcements'
+import { formatCurrency, formatDate } from '@/lib/format'
+import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
 
-"use client";
-import Image from "next/image";
-import Link from "next/link";
-import React, { useState, useEffect } from "react";
+type PublicProperty = {
+  id: string
+  name: string
+  areaName: string | null
+  colonyName: string | null
+  locality: string | null
+  buildingName: string | null
+  doorNumber: string | null
+  latitude: unknown
+  longitude: unknown
+  propertyType: PropertyType
+  bedrooms: number | null
+  bathrooms: number | null
+  monthlyRent: unknown
+  securityDeposit: unknown
+  leaseEndDate: Date | null
+  status: PropertyStatus
+  photos: { path: string; altText: string | null }[]
+}
 
-function Slideshow() {
-  const images = [
-    "/skyline2.png",
-    "/skyline5.png",
-    "/skyline7.png",
-    "/skyline8.png",
-  ];
-  const [current, setCurrent] = useState(0);
+function addMonths(date: Date, months: number) {
+  const copy = new Date(date)
+  copy.setMonth(copy.getMonth() + months)
+  return copy
+}
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % images.length);
-    }, 3500);
-    return () => clearInterval(timer);
-  }, [images.length]);
+function getLocality(property: PublicProperty) {
+  return property.locality || property.areaName || property.colonyName || 'Other Hyderabad localities'
+}
 
-  const prevSlide = () => setCurrent((prev) => (prev - 1 + images.length) % images.length);
-  const nextSlide = () => setCurrent((prev) => (prev + 1) % images.length);
+function getAddress(property: PublicProperty) {
+  return [property.doorNumber, property.buildingName, property.colonyName, property.areaName, property.locality]
+    .filter(Boolean)
+    .join(', ')
+}
 
-  const validImage = images[current] && images[current] !== "";
-  return (
-    <div className="relative w-full flex justify-center items-center mb-8">
-      {validImage && (
-        <Image
-          src={images[current]}
-          alt={`Slideshow image ${current + 1}`}
-          width={900}
-          height={240}
-          className="w-full h-[240px] object-cover rounded transition-all duration-700"
-          priority
-        />
-      )}
-      {images.length > 1 && (
-        <>
-          <button
-            onClick={prevSlide}
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-[#cd7f32] hover:bg-[#b87333] text-white rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-[#cd7f32]"
-            aria-label="Previous slide"
-          >
-            <span className="text-white">&#8592;</span>
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#cd7f32] hover:bg-[#b87333] text-white rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-[#cd7f32]"
-            aria-label="Next slide"
-          >
-            <span className="text-white">&#8594;</span>
-          </button>
-        </>
-      )}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
-        {images.map((_, idx) => (
-          <span
-            key={idx}
-            className={`w-2 h-2 rounded-full ${idx === current ? 'bg-[#cd7f32]' : 'bg-gray-300'} inline-block`}
-          />
-        ))}
-      </div>
-    </div>
-  );
+function getCoordinates(property: PublicProperty) {
+  const latitude = property.latitude === null || property.latitude === undefined ? null : Number(property.latitude)
+  const longitude = property.longitude === null || property.longitude === undefined ? null : Number(property.longitude)
+
+  if (latitude === null || longitude === null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+    return null
+  }
+
+  return { latitude, longitude }
+}
+
+function groupByLocality(properties: PublicProperty[]) {
+  return properties.reduce<Record<string, PublicProperty[]>>((groups, property) => {
+    const locality = getLocality(property)
+    groups[locality] = groups[locality] ? [...groups[locality], property] : [property]
+    return groups
+  }, {})
 }
 
 function Header() {
   return (
-    <header className="w-full bg-[#f7f7fa] py-0 mb-0 shadow">
-      <div className="max-w-2xl mx-auto px-0 flex justify-center items-center">
-        <Image
-          src="/EPM logo.png"
-          alt="EPM Logo"
-          width={170}
-          height={200}
-          className="object-cover scale-115 mix-blend-multiply mx-auto my-0"
-        />
+    <header className="w-full border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3">
+        <Link href="/" className="flex items-center" style={{ textDecoration: 'none' }}>
+          <Image src="/EPM logo.png" alt="EPM Logo" width={120} height={140} className="object-cover mix-blend-multiply" />
+          <span className="ml-3 flex flex-col leading-tight">
+            <span className="text-xl font-bold tracking-wide whitespace-nowrap text-[#092136]">EDAM</span>
+            <span className="text-sm font-semibold tracking-wide whitespace-nowrap text-[#092136]">PROPERTY MANAGEMENT</span>
+          </span>
+        </Link>
+        <nav className="flex flex-wrap items-center gap-3">
+          <Link href="/tenant-login" className="rounded-full bg-[#092136] px-5 py-2 text-sm font-semibold !text-white shadow transition hover:bg-[#0d2c4a]">Tenant Login</Link>
+          <Link href="/admin-login" className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">Admin</Link>
+        </nav>
       </div>
     </header>
-  );
+  )
 }
 
-export default function Home() {
+function PropertyCard({ property }: { property: PublicProperty }) {
+  const address = getAddress(property)
+  const coordinates = getCoordinates(property)
+  const isAvailableNow = property.status === PropertyStatus.VACANT
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start bg-gray-50 p-0">
+    <article className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200">
+      <div className="relative aspect-[16/9] bg-slate-100">
+        {property.photos[0] ? (
+          <Image src={property.photos[0].path} alt={property.photos[0].altText ?? property.name} fill className="object-cover" />
+        ) : (
+          <Image src="/skyline5.png" alt={property.name} fill className="object-cover" />
+        )}
+      </div>
+      <div className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-semibold text-slate-950">{property.name}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{address || 'Hyderabad, Telangana'}</p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+            {isAvailableNow ? 'Available now' : 'Opening soon'}
+          </span>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">{property.propertyType}</span>
+          {property.propertyType === PropertyType.RESIDENTIAL && (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">{property.bedrooms ?? 0} bed / {property.bathrooms ?? 0} bath</span>
+          )}
+        </div>
+        <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">Monthly rent</dt>
+            <dd className="mt-2 text-lg font-semibold text-slate-950">{formatCurrency(Number(property.monthlyRent))}</dd>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">Deposit</dt>
+            <dd className="mt-2 text-lg font-semibold text-slate-950">{formatCurrency(Number(property.securityDeposit))}</dd>
+          </div>
+        </dl>
+        {property.leaseEndDate && !isAvailableNow && (
+          <p className="mt-4 text-sm text-slate-600">Current lease ends {formatDate(property.leaseEndDate)}.</p>
+        )}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Link href={`/register?propertyId=${property.id}`} className="rounded-full bg-[#092136] px-5 py-3 text-center text-sm font-semibold tracking-[0.16em] !text-white transition hover:bg-[#0d2c4a]">
+            APPLY
+          </Link>
+          {coordinates ? (
+            <a href={`https://www.google.com/maps/search/?api=1&query=${coordinates.latitude},${coordinates.longitude}`} target="_blank" rel="noreferrer" className="rounded-full border border-slate-300 px-5 py-3 text-center text-sm font-semibold tracking-[0.16em] text-slate-700 transition hover:bg-slate-100">
+              MAP
+            </a>
+          ) : (
+            <span className="rounded-full border border-slate-200 px-5 py-3 text-center text-sm font-semibold tracking-[0.16em] text-slate-400">NO GPS</span>
+          )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function LocalityGroups({ title, properties }: { title: string; properties: PublicProperty[] }) {
+  const groups = groupByLocality(properties)
+  const localities = Object.keys(groups).sort((a, b) => a.localeCompare(b))
+
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-12">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">{title}</p>
+        <h2 className="mt-3 text-3xl font-semibold text-slate-950">Available properties by locality</h2>
+      </div>
+      <div className="mt-8 space-y-10">
+        {localities.length ? localities.map((locality) => (
+          <div key={locality}>
+            <h3 className="text-2xl font-semibold text-slate-900">{locality}</h3>
+            <div className="mt-5 grid gap-6 lg:grid-cols-2">
+              {groups[locality].map((property) => <PropertyCard key={property.id} property={property} />)}
+            </div>
+          </div>
+        )) : (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">No properties are listed in this category right now.</div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function PropertyMap({ properties }: { properties: PublicProperty[] }) {
+  const mappedProperties = properties
+    .map((property) => ({ property, coordinates: getCoordinates(property) }))
+    .filter((item): item is { property: PublicProperty; coordinates: { latitude: number; longitude: number } } => Boolean(item.coordinates))
+
+  return (
+    <section id="map-view" className="mx-auto max-w-6xl px-4 pb-12">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">Map view</p>
+        <h2 className="mt-3 text-3xl font-semibold text-slate-950">Find properties by GPS location</h2>
+      </div>
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        {mappedProperties.length ? mappedProperties.map(({ property, coordinates }) => {
+          const delta = 0.01
+          const bbox = [
+            coordinates.longitude - delta,
+            coordinates.latitude - delta,
+            coordinates.longitude + delta,
+            coordinates.latitude + delta,
+          ].join(',')
+
+          return (
+            <article key={property.id} className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200">
+              <iframe
+                title={`Map for ${property.name}`}
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coordinates.latitude},${coordinates.longitude}`}
+                className="h-72 w-full border-0"
+                loading="lazy"
+              />
+              <div className="p-5">
+                <h3 className="text-lg font-semibold text-slate-950">{property.name}</h3>
+                <p className="mt-2 text-sm text-slate-600">{getAddress(property) || getLocality(property)}</p>
+                <a href={`https://www.google.com/maps/search/?api=1&query=${coordinates.latitude},${coordinates.longitude}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-slate-800">
+                  Open in Google Maps
+                </a>
+              </div>
+            </article>
+          )
+        }) : (
+          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500 lg:col-span-2">No properties have GPS coordinates yet.</div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+export default async function Home() {
+  const today = new Date()
+  const threeMonthsFromNow = addMonths(today, 3)
+
+  const properties = await prisma.property.findMany({
+    where: {
+      isArchived: false,
+      OR: [
+        { status: PropertyStatus.VACANT },
+        {
+          status: { not: PropertyStatus.VACANT },
+          leaseEndDate: {
+            gte: today,
+            lte: threeMonthsFromNow,
+          },
+        },
+      ],
+    },
+    include: {
+      photos: {
+        where: { isPrimary: true },
+        take: 1,
+      },
+    },
+    orderBy: [{ locality: 'asc' }, { monthlyRent: 'asc' }, { name: 'asc' }],
+  })
+
+  const residentialProperties = properties.filter((property) => property.propertyType === PropertyType.RESIDENTIAL)
+  const commercialProperties = properties.filter((property) => property.propertyType === PropertyType.COMMERCIAL)
+
+  return (
+    <div className="min-h-screen bg-[linear-gradient(180deg,_#f8f4ec_0%,_#eef3f8_100%)]">
       <Header />
-      <Slideshow />
-      <div className="w-full flex flex-col items-center mb-6">
-        <h1 className="text-3xl font-bold text-[#092136] text-center mb-2">Welcome to Edam Property Management</h1>
-        <h2 className="text-xl font-medium text-blue-700 text-center">Property Management and Development in Hyderabad City</h2>
-      </div>
-      <div className="flex flex-col items-center mb-6">
-        <Link href="/resident-login">
-          <button className="mb-8 bg-[#cd7f32] text-white px-8 py-3 rounded-full text-lg font-bold shadow hover:bg-[#b87333] transition border-2 border-[#cd7f32] hover:border-[#b87333] focus:outline-none focus:ring-2 focus:ring-[#cd7f32]">
-            Resident Login
-          </button>
-        </Link>
-      </div>
-      <div className="max-w-2xl w-full bg-white rounded shadow-md p-8 flex flex-col items-center">
-        <p className="text-lg text-gray-700 mb-6 text-center">
-          We provide comprehensive property management services including tenant placement, rent collection, maintenance, and more. Our team is dedicated to making your rental experience seamless and stress-free.
-        </p>
-        <div className="mb-6 w-full">
-          <h2 className="text-2xl font-semibold mb-2 text-blue-600">Our Services</h2>
-          <ul className="list-disc list-inside text-gray-600 space-y-1">
-            <li>Tenant Placement & Screening</li>
-            <li>Rent Collection & Accounting</li>
-            <li>Property Maintenance & Repairs</li>
-            <li>24/7 Emergency Support</li>
-            <li>Online Resident Portal</li>
-          </ul>
+      <main>
+        <section className="relative overflow-hidden bg-slate-950">
+          <Image src="/skyline2.png" alt="Hyderabad skyline" fill priority className="object-cover opacity-55" />
+          <div className="relative mx-auto max-w-6xl px-4 py-20 sm:py-24">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-200">Hyderabad rentals</p>
+              <h1 className="mt-4 text-4xl font-semibold leading-tight text-white sm:text-6xl">Find your next EDAM managed property.</h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-100">
+                Browse residential and commercial properties by locality, review upcoming availability, and use GPS map links to find each property.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="#residential-properties" className="rounded-full bg-[#cd7f32] px-6 py-3 text-sm font-semibold tracking-[0.16em] !text-white shadow transition hover:bg-[#b87333]">RESIDENTIAL</Link>
+                <Link href="#commercial-properties" className="rounded-full border border-white/70 px-6 py-3 text-sm font-semibold tracking-[0.16em] !text-white transition hover:bg-white/10">COMMERCIAL</Link>
+                <Link href="#map-view" className="rounded-full border border-white/70 px-6 py-3 text-sm font-semibold tracking-[0.16em] !text-white transition hover:bg-white/10">MAP VIEW</Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div id="residential-properties">
+          <LocalityGroups title="Residential properties" properties={residentialProperties} />
         </div>
-        <div className="mb-6 w-full">
-          <h2 className="text-2xl font-semibold mb-2 text-blue-600">Contact Us</h2>
-          <p className="text-gray-700">Phone: +91 9440348141</p>
-          <p className="text-gray-700">Email: info@edamproperty.com</p>
-          <p className="text-gray-700">H.no: 11-11-143, Telephone colony, Saroornagar, Hyderabad, Telangana 500035, India.</p>
+        <div id="commercial-properties">
+          <LocalityGroups title="Commercial properties" properties={commercialProperties} />
         </div>
-      </div>
+        <PropertyMap properties={properties} />
+
+        <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-12 lg:grid-cols-[1fr_0.8fr]">
+          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-slate-200">
+            <h2 className="text-2xl font-semibold text-slate-950">Contact us</h2>
+            <div className="mt-5 space-y-2 text-sm leading-7 text-slate-600">
+              <p>Phone: +91 9440348141</p>
+              <p>Email: info@edamproperty.com</p>
+              <p>H.no: 11-11-143, Telephone colony, Saroornagar, Hyderabad, Telangana 500035, India.</p>
+            </div>
+          </div>
+          <PublishedAnnouncements audience="PUBLIC" />
+        </section>
+      </main>
     </div>
-  );
+  )
 }
