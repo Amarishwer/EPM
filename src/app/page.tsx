@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { PublishedAnnouncements } from '@/app/shared/published-announcements'
+import { PropertyMapView } from '@/app/property-map-view'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { prisma } from '@/lib/prisma'
 
@@ -26,6 +27,16 @@ type PublicProperty = {
   leaseEndDate: Date | null
   status: PropertyStatus
   photos: { path: string; altText: string | null }[]
+}
+
+type PublicMapProperty = Omit<
+  PublicProperty,
+  'latitude' | 'longitude' | 'monthlyRent' | 'securityDeposit' | 'leaseEndDate' | 'photos'
+> & {
+  latitude: number | null
+  longitude: number | null
+  monthlyRent: number
+  securityDeposit: number
 }
 
 function addMonths(date: Date, months: number) {
@@ -53,6 +64,35 @@ function getCoordinates(property: PublicProperty) {
   }
 
   return { latitude, longitude }
+}
+
+function toNullableNumber(value: unknown) {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const numberValue = Number(value)
+  return Number.isNaN(numberValue) ? null : numberValue
+}
+
+function toMapProperty(property: PublicProperty) {
+  return {
+    id: property.id,
+    name: property.name,
+    areaName: property.areaName,
+    colonyName: property.colonyName,
+    locality: property.locality,
+    buildingName: property.buildingName,
+    doorNumber: property.doorNumber,
+    latitude: toNullableNumber(property.latitude),
+    longitude: toNullableNumber(property.longitude),
+    propertyType: property.propertyType,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    monthlyRent: toNullableNumber(property.monthlyRent) ?? 0,
+    securityDeposit: toNullableNumber(property.securityDeposit) ?? 0,
+    status: property.status,
+  }
 }
 
 function groupByLocality(properties: PublicProperty[]) {
@@ -169,47 +209,15 @@ function LocalityGroups({ title, properties }: { title: string; properties: Publ
   )
 }
 
-function PropertyMap({ properties }: { properties: PublicProperty[] }) {
-  const mappedProperties = properties
-    .map((property) => ({ property, coordinates: getCoordinates(property) }))
-    .filter((item): item is { property: PublicProperty; coordinates: { latitude: number; longitude: number } } => Boolean(item.coordinates))
-
+function PropertyMap({ properties }: { properties: PublicMapProperty[] }) {
   return (
     <section id="map-view" className="mx-auto max-w-6xl px-4 pb-12">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">Map view</p>
         <h2 className="mt-3 text-3xl font-semibold text-slate-950">Find properties by GPS location</h2>
       </div>
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        {mappedProperties.length ? mappedProperties.map(({ property, coordinates }) => {
-          const delta = 0.01
-          const bbox = [
-            coordinates.longitude - delta,
-            coordinates.latitude - delta,
-            coordinates.longitude + delta,
-            coordinates.latitude + delta,
-          ].join(',')
-
-          return (
-            <article key={property.id} className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200">
-              <iframe
-                title={`Map for ${property.name}`}
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coordinates.latitude},${coordinates.longitude}`}
-                className="h-72 w-full border-0"
-                loading="lazy"
-              />
-              <div className="p-5">
-                <h3 className="text-lg font-semibold text-slate-950">{property.name}</h3>
-                <p className="mt-2 text-sm text-slate-600">{getAddress(property) || getLocality(property)}</p>
-                <a href={`https://www.google.com/maps/search/?api=1&query=${coordinates.latitude},${coordinates.longitude}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold !text-white transition hover:bg-slate-800">
-                  Open in Google Maps
-                </a>
-              </div>
-            </article>
-          )
-        }) : (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500 lg:col-span-2">No properties have GPS coordinates yet.</div>
-        )}
+      <div className="mt-8">
+        <PropertyMapView properties={properties} />
       </div>
     </section>
   )
@@ -244,6 +252,7 @@ export default async function Home() {
 
   const residentialProperties = properties.filter((property) => property.propertyType === PropertyType.RESIDENTIAL)
   const commercialProperties = properties.filter((property) => property.propertyType === PropertyType.COMMERCIAL)
+  const mapProperties = properties.map(toMapProperty)
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,_#f8f4ec_0%,_#eef3f8_100%)]">
@@ -253,13 +262,13 @@ export default async function Home() {
           <Image src="/skyline2.png" alt="Hyderabad skyline" fill priority className="object-cover opacity-55" />
           <div className="relative mx-auto max-w-6xl px-4 py-20 sm:py-24">
             <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-200">Hyderabad rentals</p>
-              <h1 className="mt-4 text-4xl font-semibold leading-tight text-white sm:text-6xl">Find your next EDAM managed property.</h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-100">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] !text-white">Hyderabad rentals</p>
+              <h1 className="mt-4 text-4xl font-semibold leading-tight !text-white sm:text-6xl">Find your next Edam managed property.</h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 !text-white text-slate-100">
                 Browse residential and commercial properties by locality, review upcoming availability, and use GPS map links to find each property.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="#residential-properties" className="rounded-full bg-[#cd7f32] px-6 py-3 text-sm font-semibold tracking-[0.16em] !text-white shadow transition hover:bg-[#b87333]">RESIDENTIAL</Link>
+                <Link href="#residential-properties" className="rounded-full border border-white/70 px-6 py-3 text-sm font-semibold tracking-[0.16em] !text-white transition hover:bg-white/10">RESIDENTIAL</Link>
                 <Link href="#commercial-properties" className="rounded-full border border-white/70 px-6 py-3 text-sm font-semibold tracking-[0.16em] !text-white transition hover:bg-white/10">COMMERCIAL</Link>
                 <Link href="#map-view" className="rounded-full border border-white/70 px-6 py-3 text-sm font-semibold tracking-[0.16em] !text-white transition hover:bg-white/10">MAP VIEW</Link>
               </div>
@@ -273,7 +282,7 @@ export default async function Home() {
         <div id="commercial-properties">
           <LocalityGroups title="Commercial properties" properties={commercialProperties} />
         </div>
-        <PropertyMap properties={properties} />
+        <PropertyMap properties={mapProperties} />
 
         <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-12 lg:grid-cols-[1fr_0.8fr]">
           <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-slate-200">
