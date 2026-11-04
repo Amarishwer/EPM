@@ -20,7 +20,6 @@ Run this before production launch and after every meaningful deployment.
 - [ ] Properties with lease end dates in the next three months appear on the home page.
 - [ ] Residential and commercial properties are separated.
 - [ ] Properties are grouped by locality.
-- [ ] GPS-enabled properties show in map view.
 - [ ] Help page loads.
 - [ ] Tenant registration page loads.
 - [ ] Tenant login page loads.

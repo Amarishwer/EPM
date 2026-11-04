@@ -25,14 +25,6 @@ function parseString(value: FormDataEntryValue | null) {
   return parsed || null
 }
 
-function parseOptionalDecimal(value: FormDataEntryValue | null) {
-  const parsed = String(value ?? '').trim()
-  if (!parsed) return null
-
-  const number = Number.parseFloat(parsed)
-  return Number.isNaN(number) ? null : number.toString()
-}
-
 function parseOptionalInt(value: FormDataEntryValue | null) {
   const parsed = String(value ?? '').trim()
   if (!parsed) return null
@@ -88,8 +80,6 @@ function buildPropertyPayload(formData: FormData) {
     locality: parseString(formData.get('locality')),
     buildingName: parseString(formData.get('buildingName')),
     doorNumber: parseString(formData.get('doorNumber')),
-    latitude: parseOptionalDecimal(formData.get('latitude')),
-    longitude: parseOptionalDecimal(formData.get('longitude')),
     propertyType: String(formData.get('propertyType') ?? PropertyType.RESIDENTIAL) as PropertyType,
     bedrooms: parseOptionalInt(formData.get('bedrooms')),
     bathrooms: parseOptionalInt(formData.get('bathrooms')),

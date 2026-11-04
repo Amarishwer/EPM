@@ -135,8 +135,6 @@ model Property {
   locality             String?
   buildingName         String?
   doorNumber           String?
-  latitude             Decimal?
-  longitude            Decimal?
   propertyType         PropertyType         @default(RESIDENTIAL)
   bedrooms             Int?
   bathrooms            Int?

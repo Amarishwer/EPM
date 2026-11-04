@@ -8,23 +8,19 @@ import { signIn } from 'next-auth/react'
 
 function Header() {
   return (
-    <header className="w-full border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-4">
-        <Link href="/" className="flex items-center gap-4" style={{ textDecoration: 'none' }}>
-          <Image
-            src="/logo.png"
-            alt="EPM Logo"
-            width={72}
-            height={72}
-            className="object-cover mix-blend-multiply"
-          />
-          <span className="flex flex-col leading-tight">
-            <span className="text-xl font-bold tracking-[0.18em] text-slate-900">EDAM</span>
-            <span className="text-xs font-semibold tracking-[0.28em] text-slate-500">
-              PROPERTY MANAGEMENT
-            </span>
+    <header className="w-full border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <Link href="/" className="flex items-center" style={{ textDecoration: 'none' }}>
+          <Image src="/logo.png" alt="EPM Logo" width={96} height={96} className="object-cover mix-blend-multiply" />
+          <span className="ml-4 flex flex-col leading-tight">
+            <span className="text-xl font-bold tracking-wide whitespace-nowrap text-[#092136]">EDAM</span>
+            <span className="text-sm font-semibold tracking-wide whitespace-nowrap text-[#092136]">PROPERTY MANAGEMENT</span>
           </span>
         </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/help" className="rounded-full bg-[#092136] px-5 py-2 text-sm font-semibold !text-white shadow transition hover:bg-[#0d2c4a]">Help</Link>
+          <Link href="/tenant-login" className="rounded-full bg-[#092136] px-5 py-2 text-sm font-semibold !text-white shadow transition hover:bg-[#0d2c4a]">Tenant Login</Link>
+        </div>
       </div>
     </header>
   )

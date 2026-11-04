@@ -63,7 +63,7 @@ export default async function PropertiesPage({
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-700">Portfolio management</p>
             <h1 className="mt-3 text-4xl font-semibold text-slate-950">Properties</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-              Search the portfolio, review occupancy, GPS location, property type, lease data, pricing, imagery, and tenant assignment.
+              Search the portfolio, review occupancy, property type, lease data, pricing, imagery, and tenant assignment.
             </p>
           </div>
           <Link href="/admin/properties/new" className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold tracking-[0.16em] !text-white transition hover:bg-slate-800">

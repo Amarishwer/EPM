@@ -2,7 +2,7 @@ export function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value)
 }
@@ -17,7 +17,7 @@ export function formatDate(value?: Date | string | null) {
     return 'Not set'
   }
 
-  return date.toLocaleDateString()
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 export function formatMonth(value?: Date | string | null) {
@@ -30,7 +30,7 @@ export function formatMonth(value?: Date | string | null) {
     return 'No month'
   }
 
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  return date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 }
 
 export function formatDocumentSize(bytes: number) {

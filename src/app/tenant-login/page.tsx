@@ -17,7 +17,7 @@ function Header() {
         </Link>
         <div className="flex items-center gap-3">
           <Link href="/help" className="rounded-full bg-[#092136] px-5 py-2 text-sm font-semibold !text-white shadow transition hover:bg-[#0d2c4a]">Help</Link>
-          <Link href="/admin-login" className="rounded-full bg-[#cd7f32] px-5 py-2 text-sm font-semibold !text-white shadow transition hover:bg-[#b87333]">Admin Login</Link>
+          <Link href="/admin-login" className="rounded-full bg-[#092136] px-5 py-2 text-sm font-semibold !text-white shadow transition hover:bg-[#0d2c4a]">Admin Login</Link>
         </div>
       </div>
     </header>

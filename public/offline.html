@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#123b36" />
+    <title>You're offline | Edam Property Management</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; background: #f7f7f3; color: #17211f; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; box-sizing: border-box; }
+      main { width: min(100%, 440px); padding: 36px; border-radius: 28px; background: white; box-shadow: 0 18px 60px #123b361a; text-align: center; }
+      .mark { width: 64px; height: 64px; margin: 0 auto 24px; display: grid; place-items: center; border-radius: 20px; background: #123b36; color: white; font-size: 30px; }
+      h1 { margin: 0; font-size: 1.7rem; }
+      p { color: #59615f; line-height: 1.6; }
+      button { margin-top: 12px; padding: 12px 20px; border: 0; border-radius: 999px; background: #123b36; color: white; font: inherit; font-weight: 650; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">⌂</div>
+      <h1>You're offline</h1>
+      <p>Reconnect to the internet to view properties and access your Edam tenant portal.</p>
+      <button onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>
